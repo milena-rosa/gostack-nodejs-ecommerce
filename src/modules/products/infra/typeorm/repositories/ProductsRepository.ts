@@ -4,6 +4,7 @@ import IProductsRepository from '@modules/products/repositories/IProductsReposit
 import ICreateProductDTO from '@modules/products/dtos/ICreateProductDTO';
 import IUpdateProductsQuantityDTO from '@modules/products/dtos/IUpdateProductsQuantityDTO';
 import Product from '../entities/Product';
+import AppError from '@shared/errors/AppError';
 
 interface IFindProducts {
   id: string;
@@ -21,21 +22,55 @@ class ProductsRepository implements IProductsRepository {
     price,
     quantity,
   }: ICreateProductDTO): Promise<Product> {
-    // TODO
+    const newProduct = this.ormRepository.create({
+      name,
+      price,
+      quantity,
+    });
+
+    await this.ormRepository.save(newProduct);
+
+    return newProduct;
   }
 
   public async findByName(name: string): Promise<Product | undefined> {
-    // TODO
+    const foundProduct = await this.ormRepository.findOne({
+      where: {
+        name,
+      },
+    });
+
+    return foundProduct;
   }
 
   public async findAllById(products: IFindProducts[]): Promise<Product[]> {
-    // TODO
+    const foundProducts = await this.ormRepository.findByIds(products);
+    return foundProducts;
   }
+
+  // export default interface IUpdateProductsQuantityDTO {
+  //   id: string;
+  //   quantity: number;
+  // }
 
   public async updateQuantity(
     products: IUpdateProductsQuantityDTO[],
   ): Promise<Product[]> {
-    // TODO
+    const productsIds = products.map(product => product.id);
+    const storedProducts = await this.ormRepository.findByIds(productsIds);
+
+    const updatedProducts = storedProducts.map(storedProduct => {
+      const productToBeUpdated = products.find(
+        product => product.id === storedProduct.id,
+      );
+
+      return {
+        ...productToBeUpdated,
+        quantity: productToBeUpdated?.quantity,
+      };
+    });
+
+    return this.ormRepository.save(updatedProducts);
   }
 }
 
